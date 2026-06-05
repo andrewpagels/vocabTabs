@@ -1,0 +1,13 @@
+{
+  "name": "vocabtabs-extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "compile": "babel ui.jsx -o ui.js && babel directions.jsx -o directions.js && babel app.jsx -o app.js"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.24.0",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-react": "^7.24.0"
+  }
+}
