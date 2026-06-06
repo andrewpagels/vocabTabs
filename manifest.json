@@ -4,6 +4,14 @@
   "version": "1.0.0",
   "description": "Learn new words every time you open a new tab.",
   "chrome_url_overrides": { "newtab": "newtab.html" },
+  "permissions": ["declarativeNetRequest"],
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "aic_headers",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
   "host_permissions": [
     "https://api.artic.edu/*",
     "https://www.artic.edu/*"

@@ -57,7 +57,9 @@
 
   async function fetchPage(page) {
     const url = `https://api.artic.edu/api/v1/artworks/search?query[term][is_public_domain]=true&fields=${FIELDS}&limit=100&page=${page}`;
-    const r = await fetch(url);
+    const r = await fetch(url, {
+      headers: { 'AIC-User-Agent': 'VocabTabs/1.0 (andrew.pagels@gmail.com)' }
+    });
     if (!r.ok) throw new Error('AIC ' + r.status);
     const j = await r.json();
     return (j.data || []).map(normalize).filter(Boolean);
