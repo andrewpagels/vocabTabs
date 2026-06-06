@@ -89,7 +89,7 @@
         if (!done) shuffle();
       });
       const tmr = setTimeout(() => {
-        if (loading) shuffle();
+        if (!poolRef.current) shuffle();
       }, 3500);
       return () => {
         done = true;

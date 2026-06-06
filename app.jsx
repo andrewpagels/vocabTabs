@@ -54,7 +54,7 @@ function App() {
     window.ArtService.getPool()
       .then(items => { poolRef.current = items; setPool(items); if (!done) shuffle(); })
       .catch(() => { poolRef.current = window.ArtService.FALLBACK; setPool([]); if (!done) shuffle(); });
-    const tmr = setTimeout(() => { if (loading) shuffle(); }, 3500);
+    const tmr = setTimeout(() => { if (!poolRef.current) shuffle(); }, 3500);
     return () => { done = true; clearTimeout(tmr); };
   }, []); // eslint-disable-line
 
