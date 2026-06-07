@@ -174,7 +174,7 @@
       style: {
         color: accent
       }
-    }, "View at the Art Institute ", /*#__PURE__*/React.createElement(Icon, {
+    }, art.viewLabel || 'View source', " ", /*#__PURE__*/React.createElement(Icon, {
       name: "ext"
     })), /*#__PURE__*/React.createElement("a", {
       href: art.wikiUrl,
@@ -191,6 +191,8 @@
   // Manage words panel (CSV upload + list).
   function ManagePanel({
     words,
+    sources,
+    onToggleSource,
     onClose,
     onImport,
     onReset
@@ -242,6 +244,23 @@
     })), msg && /*#__PURE__*/React.createElement("div", {
       className: "vt-msg"
     }, msg), /*#__PURE__*/React.createElement("div", {
+      className: "vt-sources"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "vt-sources-head"
+    }, "Art sources"), (sources || []).map(s => {
+      const onlyEnabled = sources.filter(x => x.enabled).length === 1 && s.enabled;
+      return /*#__PURE__*/React.createElement("label", {
+        key: s.id,
+        className: "vt-source-row" + (onlyEnabled ? " locked" : "")
+      }, /*#__PURE__*/React.createElement("input", {
+        type: "checkbox",
+        checked: s.enabled,
+        disabled: onlyEnabled,
+        onChange: e => onToggleSource(s.id, e.target.checked)
+      }), /*#__PURE__*/React.createElement("span", null, s.label), onlyEnabled && /*#__PURE__*/React.createElement("em", {
+        className: "vt-source-hint"
+      }, "at least one required"));
+    })), /*#__PURE__*/React.createElement("div", {
       className: "vt-counts"
     }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, active.length), " in rotation"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, learned.length), " learned"), /*#__PURE__*/React.createElement("button", {
       className: "vt-textbtn",

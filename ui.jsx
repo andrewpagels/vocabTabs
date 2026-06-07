@@ -69,7 +69,7 @@ function ArtistPlacard({ art, accent, alwaysOpen }) {
         </div>
         <div className="vt-placard-links">
           <a href={art.pageUrl} target="_blank" rel="noopener" style={{ color: accent }}>
-            View at the Art Institute <Icon name="ext" />
+            {art.viewLabel || 'View source'} <Icon name="ext" />
           </a>
           <a href={art.wikiUrl} target="_blank" rel="noopener" style={{ color: accent }}>
             About {art.artist} <Icon name="ext" />
@@ -81,7 +81,7 @@ function ArtistPlacard({ art, accent, alwaysOpen }) {
 }
 
 // Manage words panel (CSV upload + list).
-function ManagePanel({ words, onClose, onImport, onReset }) {
+function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onReset }) {
   const fileRef = useRef(null);
   const [msg, setMsg] = useState('');
   const active = words.filter(w => !w.learned);
@@ -117,6 +117,25 @@ function ManagePanel({ words, onClose, onImport, onReset }) {
           <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={handleFile} />
         </div>
         {msg && <div className="vt-msg">{msg}</div>}
+
+        <div className="vt-sources">
+          <div className="vt-sources-head">Art sources</div>
+          {(sources || []).map(s => {
+            const onlyEnabled = sources.filter(x => x.enabled).length === 1 && s.enabled;
+            return (
+              <label key={s.id} className={"vt-source-row" + (onlyEnabled ? " locked" : "")}>
+                <input
+                  type="checkbox"
+                  checked={s.enabled}
+                  disabled={onlyEnabled}
+                  onChange={(e) => onToggleSource(s.id, e.target.checked)}
+                />
+                <span>{s.label}</span>
+                {onlyEnabled && <em className="vt-source-hint">at least one required</em>}
+              </label>
+            );
+          })}
+        </div>
 
         <div className="vt-counts">
           <span><strong>{active.length}</strong> in rotation</span>
