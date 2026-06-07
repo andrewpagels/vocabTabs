@@ -96,31 +96,6 @@
       };
     }, []); // eslint-disable-line
 
-    // keyboard shortcuts
-    useEffect(() => {
-      function onKey(e) {
-        if (managing) return; // panel open — don't hijack
-        const el = document.activeElement;
-        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
-        const k = e.key.toLowerCase();
-        if (e.key === ' ' || k === 'n') {
-          e.preventDefault();
-          onNext();
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          onMore();
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          onLess();
-        } else if (k === 'l') {
-          onLearned();
-        } else if (k === 'm') {
-          setManaging(true);
-        }
-      }
-      window.addEventListener('keydown', onKey);
-      return () => window.removeEventListener('keydown', onKey);
-    }, [managing, onNext, onMore, onLess, onLearned]);
     const accent = window.ArtService.accentFrom(art && art.color);
     function refreshWord(updated, msg) {
       window.Vocab.save(updated);
@@ -163,6 +138,32 @@
       flash('Reset to sample set');
       shuffle(fresh);
     };
+
+    // keyboard shortcuts — defined after the handlers so they exist when this runs
+    useEffect(() => {
+      function onKey(e) {
+        if (managing) return; // panel open — don't hijack
+        const el = document.activeElement;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+        const k = e.key.toLowerCase();
+        if (e.key === ' ' || k === 'n') {
+          e.preventDefault();
+          onNext();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          onMore();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          onLess();
+        } else if (k === 'l') {
+          onLearned();
+        } else if (k === 'm') {
+          setManaging(true);
+        }
+      }
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }, [managing, onNext, onMore, onLess, onLearned]);
     const controls = /*#__PURE__*/React.createElement(ControlBar, {
       accent: accent,
       onLess: onLess,
