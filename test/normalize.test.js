@@ -37,3 +37,33 @@ test('toggleSource ignores unknown source ids', () => {
 test('enabledIds handles null input', () => {
   assert.deepStrictEqual(A.enabledIds(null), []);
 });
+
+test('SOURCES exposes the aic adapter metadata', () => {
+  const aic = A.sourceById('aic');
+  assert.strictEqual(aic.id, 'aic');
+  assert.strictEqual(aic.label, 'Art Institute of Chicago');
+  assert.strictEqual(aic.viewLabel, 'View at the Art Institute');
+  assert.strictEqual(aic.bundle, 'artworks.aic.json');
+  assert.strictEqual(aic.liveRefresh, true);
+});
+
+test('aic adapter normalizes a raw record and tags the source', () => {
+  const raw = {
+    id: 27992, title: 'A Sunday on La Grande Jatte',
+    artist_title: 'Georges Seurat',
+    artist_display: 'Georges Seurat\nFrench, 1859-1891',
+    date_display: '1884/86', image_id: 'abc-123',
+    color: { h: 30, s: 40, l: 50 },
+    medium_display: 'Oil on canvas', place_of_origin: 'France'
+  };
+  const r = A.sourceById('aic').normalize(raw);
+  assert.strictEqual(r.id, 27992);
+  assert.strictEqual(r.source, 'aic');
+  assert.strictEqual(r.viewLabel, 'View at the Art Institute');
+  assert.strictEqual(r.image, 'https://www.artic.edu/iiif/2/abc-123/full/1200,/0/default.jpg');
+  assert.strictEqual(r.pageUrl, 'https://www.artic.edu/artworks/27992');
+});
+
+test('aic adapter returns null when no image_id', () => {
+  assert.strictEqual(A.sourceById('aic').normalize({ id: 1, title: 'x' }), null);
+});

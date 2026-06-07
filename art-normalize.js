@@ -15,7 +15,7 @@
     return `${IIIF}/${imageId}/full/${w || 1200},/0/default.jpg`;
   }
 
-  function normalize(d) {
+  function aicNormalize(d) {
     if (!d.image_id) return null;
     return {
       id: d.id,
@@ -30,9 +30,27 @@
       image: imgUrl(d.image_id, 1200),
       thumb: imgUrl(d.image_id, 200),
       pageUrl: `https://www.artic.edu/artworks/${d.id}`,
-      wikiUrl: `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(d.artist_title || '')}`
+      wikiUrl: `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(d.artist_title || '')}`,
+      source: 'aic',
+      viewLabel: 'View at the Art Institute'
     };
   }
+
+  const AIC = {
+    id: 'aic',
+    label: 'Art Institute of Chicago',
+    viewLabel: 'View at the Art Institute',
+    bundle: 'artworks.aic.json',
+    liveRefresh: true,
+    searchUrl: (page) =>
+      `https://api.artic.edu/api/v1/artworks/search?query[term][is_public_domain]=true&fields=${FIELDS}&limit=100&page=${page}`,
+    headers: { 'AIC-User-Agent': 'VocabTabs/1.0 (andrew.pagels@gmail.com)' },
+    extract: (j) => (j.data || []),
+    normalize: aicNormalize
+  };
+
+  const SOURCES = [AIC]; // met + cma appended in later tasks
+  function sourceById(id) { return SOURCES.find(s => s.id === id) || null; }
 
   const SOURCE_IDS = ['aic', 'met', 'cma'];
   const DEFAULT_SETTINGS = Object.freeze({ aic: true, met: false, cma: false });
@@ -57,5 +75,5 @@
     return enabledIds(next).length ? next : base;
   }
 
-  return { IIIF, FIELDS, imgUrl, normalize, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource };
+  return { IIIF, FIELDS, imgUrl, normalize: aicNormalize, SOURCES, sourceById, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource };
 });
