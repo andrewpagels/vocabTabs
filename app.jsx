@@ -10,7 +10,7 @@ function ControlBar({ accent, onLess, onMore, onNext, onLearned, onManage }) {
     <React.Fragment>
       <CtrlButton label="Show less (↓)" onClick={onLess} accent={accent} />
       <CtrlButton label="Show more (↑)" onClick={onMore} accent={accent} />
-      <CtrlButton label="Next (Space)" onClick={onNext} accent={accent} />
+      <CtrlButton label="Next (Space/→)" onClick={onNext} accent={accent} />
       <CtrlButton label="Mark learned (L)" onClick={onLearned} accent={accent} />
       <CtrlButton label="Manage (M)" onClick={onManage} accent={accent} />
     </React.Fragment>

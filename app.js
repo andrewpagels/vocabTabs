@@ -25,7 +25,7 @@
       onClick: onMore,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
-      label: "Next (Space)",
+      label: "Next (Space/\u2192)",
       onClick: onNext,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
