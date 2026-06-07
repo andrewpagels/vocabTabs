@@ -49,7 +49,42 @@
     normalize: aicNormalize
   };
 
-  const SOURCES = [AIC]; // met + cma appended in later tasks
+  function metNormalize(d) {
+    if (!d || !d.isPublicDomain || !d.primaryImage) return null;
+    const bio = d.artistDisplayBio ? ` — ${d.artistDisplayBio}` : '';
+    const name = d.artistDisplayName || 'Unknown artist';
+    return {
+      id: d.objectID,
+      title: d.title || 'Untitled',
+      artist: name,
+      artistDisplay: d.artistDisplayName ? name + bio : '',
+      date: d.objectDate || '',
+      medium: d.medium || '',
+      origin: d.country || d.culture || '',
+      imageId: null,
+      color: null,
+      image: d.primaryImageSmall || d.primaryImage,
+      thumb: d.primaryImageSmall || d.primaryImage,
+      pageUrl: d.objectURL || '',
+      wikiUrl: `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(d.artistDisplayName || '')}`,
+      source: 'met',
+      viewLabel: 'View at The Met'
+    };
+  }
+
+  const MET = {
+    id: 'met',
+    label: 'The Metropolitan Museum of Art',
+    viewLabel: 'View at The Met',
+    bundle: 'artworks.met.json',
+    liveRefresh: false,
+    base: 'https://collectionapi.metmuseum.org/public/collection/v1',
+    searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1/search?q=painting&hasImages=true',
+    objectUrl: (id) => `https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`,
+    normalize: metNormalize
+  };
+
+  const SOURCES = [AIC, MET]; // cma appended in later tasks
   function sourceById(id) { return SOURCES.find(s => s.id === id) || null; }
 
   const SOURCE_IDS = ['aic', 'met', 'cma'];

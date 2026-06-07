@@ -67,3 +67,34 @@ test('aic adapter normalizes a raw record and tags the source', () => {
 test('aic adapter returns null when no image_id', () => {
   assert.strictEqual(A.sourceById('aic').normalize({ id: 1, title: 'x' }), null);
 });
+
+test('met adapter normalizes a public-domain object', () => {
+  const raw = {
+    objectID: 437056, isPublicDomain: true,
+    title: 'Tommaso di Folco Portinari',
+    artistDisplayName: 'Hans Memling',
+    artistDisplayBio: 'Netherlandish, active by 1465-died 1494 Bruges',
+    objectDate: 'ca. 1470', medium: 'Oil on oak', country: '',
+    primaryImage: 'https://images.metmuseum.org/CRDImages/ep/original/DP-44362-005.jpg',
+    primaryImageSmall: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP-44362-005.jpg',
+    objectURL: 'https://www.metmuseum.org/art/collection/search/437056'
+  };
+  const r = A.sourceById('met').normalize(raw);
+  assert.strictEqual(r.id, 437056);
+  assert.strictEqual(r.source, 'met');
+  assert.strictEqual(r.viewLabel, 'View at The Met');
+  assert.strictEqual(r.artist, 'Hans Memling');
+  assert.strictEqual(r.image, 'https://images.metmuseum.org/CRDImages/ep/web-large/DP-44362-005.jpg');
+  assert.strictEqual(r.pageUrl, 'https://www.metmuseum.org/art/collection/search/437056');
+});
+
+test('met adapter returns null when not public domain or no image', () => {
+  const met = A.sourceById('met');
+  assert.strictEqual(met.normalize({ objectID: 1, isPublicDomain: false, primaryImage: 'x' }), null);
+  assert.strictEqual(met.normalize({ objectID: 1, isPublicDomain: true, primaryImage: '' }), null);
+});
+
+test('met adapter metadata is bundle-only', () => {
+  assert.strictEqual(A.sourceById('met').liveRefresh, false);
+  assert.strictEqual(A.sourceById('met').bundle, 'artworks.met.json');
+});
