@@ -18,30 +18,29 @@
   }) {
     return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CtrlButton, {
       icon: "less",
-      label: "Show less",
+      label: "Show less (\u2193)",
       onClick: onLess,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
       icon: "more",
-      label: "Show more",
+      label: "Show more (\u2191)",
       onClick: onMore,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
       icon: "next",
-      label: "Next",
+      label: "Next (Space)",
       onClick: onNext,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
       icon: "check",
-      label: "Mark learned",
+      label: "Mark learned (L)",
       onClick: onLearned,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
       icon: "manage",
-      label: "Manage words",
+      label: "Manage (M)",
       onClick: onManage,
-      accent: accent,
-      compact: true
+      accent: accent
     }));
   }
   function App() {
@@ -97,6 +96,31 @@
       };
     }, []); // eslint-disable-line
 
+    // keyboard shortcuts
+    useEffect(() => {
+      function onKey(e) {
+        if (managing) return; // panel open — don't hijack
+        const el = document.activeElement;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+        const k = e.key.toLowerCase();
+        if (e.key === ' ' || k === 'n') {
+          e.preventDefault();
+          onNext();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          onMore();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          onLess();
+        } else if (k === 'l') {
+          onLearned();
+        } else if (k === 'm') {
+          setManaging(true);
+        }
+      }
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }, [managing, onNext, onMore, onLess, onLearned]);
     const accent = window.ArtService.accentFrom(art && art.color);
     function refreshWord(updated, msg) {
       window.Vocab.save(updated);

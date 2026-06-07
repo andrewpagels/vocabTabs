@@ -8,11 +8,11 @@ const TEXT_SCALE = 1;
 function ControlBar({ accent, onLess, onMore, onNext, onLearned, onManage }) {
   return (
     <React.Fragment>
-      <CtrlButton icon="less" label="Show less" onClick={onLess} accent={accent} />
-      <CtrlButton icon="more" label="Show more" onClick={onMore} accent={accent} />
-      <CtrlButton icon="next" label="Next" onClick={onNext} accent={accent} />
-      <CtrlButton icon="check" label="Mark learned" onClick={onLearned} accent={accent} />
-      <CtrlButton icon="manage" label="Manage words" onClick={onManage} accent={accent} compact />
+      <CtrlButton icon="less" label="Show less (↓)" onClick={onLess} accent={accent} />
+      <CtrlButton icon="more" label="Show more (↑)" onClick={onMore} accent={accent} />
+      <CtrlButton icon="next" label="Next (Space)" onClick={onNext} accent={accent} />
+      <CtrlButton icon="check" label="Mark learned (L)" onClick={onLearned} accent={accent} />
+      <CtrlButton icon="manage" label="Manage (M)" onClick={onManage} accent={accent} />
     </React.Fragment>
   );
 }
@@ -57,6 +57,23 @@ function App() {
     const tmr = setTimeout(() => { if (!poolRef.current) shuffle(); }, 3500);
     return () => { done = true; clearTimeout(tmr); };
   }, []); // eslint-disable-line
+
+  // keyboard shortcuts
+  useEffect(() => {
+    function onKey(e) {
+      if (managing) return; // panel open — don't hijack
+      const el = document.activeElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      const k = e.key.toLowerCase();
+      if (e.key === ' ' || k === 'n') { e.preventDefault(); onNext(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); onMore(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); onLess(); }
+      else if (k === 'l') { onLearned(); }
+      else if (k === 'm') { setManaging(true); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [managing, onNext, onMore, onLess, onLearned]);
 
   const accent = window.ArtService.accentFrom(art && art.color);
 
