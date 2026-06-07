@@ -12,7 +12,7 @@ const HEADERS = {
 };
 const PAGE_DELAY_MS = 600;
 const MET_OBJ_DELAY_MS = 120;
-const MET_TARGET = 700; // how many Met search hits to probe (only ~25% are public domain)
+const MET_TARGET = 400; // Met search is already filtered to public domain; this caps the pool
 
 function sleep(ms) { return new Promise((res) => setTimeout(res, ms)); }
 

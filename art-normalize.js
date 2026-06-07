@@ -78,7 +78,7 @@
     viewLabel: 'View at The Met',
     bundle: 'artworks.met.json',
     liveRefresh: false,
-searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1/search?q=painting&hasImages=true',
+    searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1/search?q=painting&hasImages=true&isPublicDomain=true',
     objectUrl: (id) => `https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`,
     normalize: metNormalize
   };
