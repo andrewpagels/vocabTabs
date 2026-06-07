@@ -34,7 +34,7 @@ function CtrlButton({ icon, label, onClick, primary, accent, compact }) {
   if (primary) { style.borderColor = accent; style.color = accent; }
   return (
     <button style={style} onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} title={label}>
-      <Icon name={icon} /> {!compact && <span>{label}</span>}
+      {icon && <Icon name={icon} />} {!compact && <span>{label}</span>}
     </button>
   );
 }

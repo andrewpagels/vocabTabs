@@ -17,27 +17,22 @@
     onManage
   }) {
     return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CtrlButton, {
-      icon: "less",
       label: "Show less (\u2193)",
       onClick: onLess,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
-      icon: "more",
       label: "Show more (\u2191)",
       onClick: onMore,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
-      icon: "next",
       label: "Next (Space)",
       onClick: onNext,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
-      icon: "check",
       label: "Mark learned (L)",
       onClick: onLearned,
       accent: accent
     }), /*#__PURE__*/React.createElement(CtrlButton, {
-      icon: "manage",
       label: "Manage (M)",
       onClick: onManage,
       accent: accent
@@ -142,11 +137,15 @@
     // keyboard shortcuts — defined after the handlers so they exist when this runs
     useEffect(() => {
       function onKey(e) {
+        if (e.key === 'Escape') {
+          if (managing) setManaging(false);
+          return;
+        }
         if (managing) return; // panel open — don't hijack
         const el = document.activeElement;
         if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
         const k = e.key.toLowerCase();
-        if (e.key === ' ' || k === 'n') {
+        if (e.key === ' ' || e.key === 'ArrowRight') {
           e.preventDefault();
           onNext();
         } else if (e.key === 'ArrowUp') {

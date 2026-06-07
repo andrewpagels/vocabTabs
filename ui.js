@@ -117,7 +117,7 @@
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false),
       title: label
-    }, /*#__PURE__*/React.createElement(Icon, {
+    }, icon && /*#__PURE__*/React.createElement(Icon, {
       name: icon
     }), " ", !compact && /*#__PURE__*/React.createElement("span", null, label));
   }

@@ -8,11 +8,11 @@ const TEXT_SCALE = 1;
 function ControlBar({ accent, onLess, onMore, onNext, onLearned, onManage }) {
   return (
     <React.Fragment>
-      <CtrlButton icon="less" label="Show less (↓)" onClick={onLess} accent={accent} />
-      <CtrlButton icon="more" label="Show more (↑)" onClick={onMore} accent={accent} />
-      <CtrlButton icon="next" label="Next (Space)" onClick={onNext} accent={accent} />
-      <CtrlButton icon="check" label="Mark learned (L)" onClick={onLearned} accent={accent} />
-      <CtrlButton icon="manage" label="Manage (M)" onClick={onManage} accent={accent} />
+      <CtrlButton label="Show less (↓)" onClick={onLess} accent={accent} />
+      <CtrlButton label="Show more (↑)" onClick={onMore} accent={accent} />
+      <CtrlButton label="Next (Space)" onClick={onNext} accent={accent} />
+      <CtrlButton label="Mark learned (L)" onClick={onLearned} accent={accent} />
+      <CtrlButton label="Manage (M)" onClick={onManage} accent={accent} />
     </React.Fragment>
   );
 }
@@ -92,11 +92,12 @@ function App() {
   // keyboard shortcuts — defined after the handlers so they exist when this runs
   useEffect(() => {
     function onKey(e) {
+      if (e.key === 'Escape') { if (managing) setManaging(false); return; }
       if (managing) return; // panel open — don't hijack
       const el = document.activeElement;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
       const k = e.key.toLowerCase();
-      if (e.key === ' ' || k === 'n') { e.preventDefault(); onNext(); }
+      if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); onNext(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); onMore(); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); onLess(); }
       else if (k === 'l') { onLearned(); }
