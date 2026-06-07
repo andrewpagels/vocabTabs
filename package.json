@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "compile": "babel ui.jsx -o ui.js && babel directions.jsx -o directions.js && babel app.jsx -o app.js",
-    "build-pool": "node scripts/build-pool.js"
+    "build-pool": "node scripts/build-pool.js",
+    "test": "node --test"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.0",

@@ -34,5 +34,27 @@
     };
   }
 
-  return { IIIF, FIELDS, imgUrl, normalize };
+  const SOURCE_IDS = ['aic', 'met', 'cma'];
+  const DEFAULT_SETTINGS = { aic: true, met: false, cma: false };
+
+  function readSettings(raw) {
+    const out = { aic: false, met: false, cma: false };
+    const obj = (raw && typeof raw === 'object') ? raw : null;
+    if (!obj) return { ...DEFAULT_SETTINGS };
+    let any = false;
+    SOURCE_IDS.forEach(id => { if (obj[id]) { out[id] = true; any = true; } });
+    return any ? out : { ...DEFAULT_SETTINGS };
+  }
+
+  function enabledIds(settings) {
+    return SOURCE_IDS.filter(id => settings && settings[id]);
+  }
+
+  function toggleSource(settings, id, enabled) {
+    const next = { ...readSettings(settings), [id]: !!enabled };
+    if (!enabledIds(next).length) return { ...readSettings(settings) };
+    return next;
+  }
+
+  return { IIIF, FIELDS, imgUrl, normalize, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource };
 });
