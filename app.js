@@ -45,6 +45,7 @@
     const [word, setWord] = useState(null);
     const [managing, setManaging] = useState(false);
     const [toast, setToast] = useState('');
+    const [sources, setSources] = useState(() => window.ArtService.getSources());
     const [loading, setLoading] = useState(true);
     const prevArt = useRef(null);
     const prevWord = useRef(null);
@@ -124,6 +125,16 @@
       flash('Imported ' + parsed.length + ' words');
       shuffle(parsed);
     };
+    const onToggleSource = async (id, enabled) => {
+      const next = window.ArtService.setSourceEnabled(id, enabled);
+      setSources(next);
+      const merged = await window.ArtService.getPool();
+      poolRef.current = merged;
+      setPool(merged);
+      shuffle();
+      const label = (next.find(s => s.id === id) || {}).label || 'Source';
+      flash(enabled ? label + ' added' : label + ' removed');
+    };
     const onReset = () => {
       const fresh = window.Vocab.SAMPLE.map(w => ({
         ...w
@@ -194,6 +205,8 @@
       onClick: () => setManaging(true)
     }, "Manage words")), managing && /*#__PURE__*/React.createElement(ManagePanel, {
       words: words,
+      sources: sources,
+      onToggleSource: onToggleSource,
       onClose: () => setManaging(false),
       onImport: onImport,
       onReset: onReset
