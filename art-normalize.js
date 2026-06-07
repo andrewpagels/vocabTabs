@@ -84,7 +84,44 @@
     normalize: metNormalize
   };
 
-  const SOURCES = [AIC, MET]; // cma appended in later tasks
+  function cmaNormalize(d) {
+    const web = d.images && d.images.web;
+    if (!web || !web.url) return null;
+    const creator = (d.creators && d.creators[0]) || null;
+    const desc = creator ? (creator.description || '') : '';
+    const artist = desc ? desc.split(' (')[0] : 'Unknown artist';
+    return {
+      id: d.id,
+      title: d.title || 'Untitled',
+      artist,
+      artistDisplay: desc || '',
+      date: d.creation_date || '',
+      medium: d.technique || '',
+      origin: Array.isArray(d.culture) ? (d.culture[0] || '') : (d.culture || ''),
+      imageId: null,
+      color: null,
+      image: web.url,
+      thumb: web.url,
+      pageUrl: d.url || '',
+      wikiUrl: `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(artist)}`,
+      source: 'cma',
+      viewLabel: 'View at the Cleveland Museum of Art'
+    };
+  }
+
+  const CMA = {
+    id: 'cma',
+    label: 'The Cleveland Museum of Art',
+    viewLabel: 'View at the Cleveland Museum of Art',
+    bundle: 'artworks.cma.json',
+    liveRefresh: true,
+    searchUrl: (page) =>
+      `https://openaccess-api.clevelandart.org/api/artworks/?cc0=1&has_image=1&limit=100&skip=${(page - 1) * 100}`,
+    extract: (j) => (j.data || []),
+    normalize: cmaNormalize
+  };
+
+  const SOURCES = [AIC, MET, CMA];
   function sourceById(id) { return SOURCES.find(s => s.id === id) || null; }
 
   const SOURCE_IDS = ['aic', 'met', 'cma'];

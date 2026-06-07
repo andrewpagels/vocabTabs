@@ -98,3 +98,34 @@ test('met adapter metadata is bundle-only', () => {
   assert.strictEqual(A.sourceById('met').liveRefresh, false);
   assert.strictEqual(A.sourceById('met').bundle, 'artworks.met.json');
 });
+
+test('cma adapter normalizes a CC0 record', () => {
+  const raw = {
+    id: 94979, title: 'Nathaniel Hurd',
+    creators: [{ description: 'John Singleton Copley (American, 1738–1815)', role: 'artist' }],
+    creation_date: 'c. 1765', technique: 'oil on canvas',
+    url: 'https://clevelandart.org/art/1915.534',
+    images: { web: { url: 'https://openaccess-cdn.clevelandart.org/1915.534/1915.534_web.jpg' } }
+  };
+  const r = A.sourceById('cma').normalize(raw);
+  assert.strictEqual(r.id, 94979);
+  assert.strictEqual(r.source, 'cma');
+  assert.strictEqual(r.viewLabel, 'View at the Cleveland Museum of Art');
+  assert.strictEqual(r.artist, 'John Singleton Copley');
+  assert.strictEqual(r.image, 'https://openaccess-cdn.clevelandart.org/1915.534/1915.534_web.jpg');
+  assert.strictEqual(r.pageUrl, 'https://clevelandart.org/art/1915.534');
+});
+
+test('cma adapter returns null without a web image', () => {
+  assert.strictEqual(A.sourceById('cma').normalize({ id: 1, title: 'x', images: {} }), null);
+});
+
+test('cma adapter supports live refresh and skip-based pagination', () => {
+  const cma = A.sourceById('cma');
+  assert.strictEqual(cma.liveRefresh, true);
+  assert.ok(cma.searchUrl(2).includes('skip=100'));
+});
+
+test('SOURCES contains all three adapters in order', () => {
+  assert.deepStrictEqual(A.SOURCES.map(s => s.id), ['aic', 'met', 'cma']);
+});
