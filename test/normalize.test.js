@@ -129,3 +129,13 @@ test('cma adapter supports live refresh and skip-based pagination', () => {
 test('SOURCES contains all three adapters in order', () => {
   assert.deepStrictEqual(A.SOURCES.map(s => s.id), ['aic', 'met', 'cma']);
 });
+
+test('cma adapter keeps parentheticals inside the artist name', () => {
+  const raw = {
+    id: 5, title: 'x',
+    creators: [{ description: 'Workshop of Rembrandt (Harmenszoon) van Rijn (Dutch, 1606–1669)' }],
+    images: { web: { url: 'https://example/x.jpg' } }
+  };
+  const r = A.sourceById('cma').normalize(raw);
+  assert.strictEqual(r.artist, 'Workshop of Rembrandt (Harmenszoon) van Rijn');
+});

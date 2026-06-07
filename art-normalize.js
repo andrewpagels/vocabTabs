@@ -78,8 +78,7 @@
     viewLabel: 'View at The Met',
     bundle: 'artworks.met.json',
     liveRefresh: false,
-    base: 'https://collectionapi.metmuseum.org/public/collection/v1',
-    searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1/search?q=painting&hasImages=true',
+searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1/search?q=painting&hasImages=true',
     objectUrl: (id) => `https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`,
     normalize: metNormalize
   };
@@ -89,7 +88,11 @@
     if (!web || !web.url) return null;
     const creator = (d.creators && d.creators[0]) || null;
     const desc = creator ? (creator.description || '') : '';
-    const artist = desc ? desc.split(' (')[0] : 'Unknown artist';
+    let artist = 'Unknown artist';
+    if (desc) {
+      const cut = desc.lastIndexOf(' (');
+      artist = (cut > 0 ? desc.slice(0, cut) : desc).trim();
+    }
     return {
       id: d.id,
       title: d.title || 'Untitled',
