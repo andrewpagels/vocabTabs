@@ -35,7 +35,7 @@
   }
 
   const SOURCE_IDS = ['aic', 'met', 'cma'];
-  const DEFAULT_SETTINGS = { aic: true, met: false, cma: false };
+  const DEFAULT_SETTINGS = Object.freeze({ aic: true, met: false, cma: false });
 
   function readSettings(raw) {
     const out = { aic: false, met: false, cma: false };
@@ -51,9 +51,10 @@
   }
 
   function toggleSource(settings, id, enabled) {
-    const next = { ...readSettings(settings), [id]: !!enabled };
-    if (!enabledIds(next).length) return { ...readSettings(settings) };
-    return next;
+    const base = readSettings(settings);
+    if (!SOURCE_IDS.includes(id)) return base;
+    const next = { ...base, [id]: !!enabled };
+    return enabledIds(next).length ? next : base;
   }
 
   return { IIIF, FIELDS, imgUrl, normalize, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource };

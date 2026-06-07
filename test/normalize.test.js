@@ -28,3 +28,12 @@ test('toggleSource refuses to disable the last enabled source', () => {
 test('enabledIds returns ids of enabled sources', () => {
   assert.deepStrictEqual(A.enabledIds({ aic: true, met: false, cma: true }), ['aic', 'cma']);
 });
+
+test('toggleSource ignores unknown source ids', () => {
+  assert.deepStrictEqual(A.toggleSource({ aic: true, met: false, cma: false }, 'xyz', true),
+    { aic: true, met: false, cma: false });
+});
+
+test('enabledIds handles null input', () => {
+  assert.deepStrictEqual(A.enabledIds(null), []);
+});
