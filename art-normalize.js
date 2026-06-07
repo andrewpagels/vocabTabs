@@ -150,5 +150,20 @@ searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1/searc
     return enabledIds(next).length ? next : base;
   }
 
-  return { IIIF, FIELDS, imgUrl, normalize: aicNormalize, SOURCES, sourceById, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource };
+  function mergePools(pools) {
+    const seen = new Set();
+    const out = [];
+    (pools || []).forEach(pool => {
+      (pool || []).forEach(it => {
+        if (!it) return;
+        const key = (it.source || '?') + ':' + it.id;
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(it);
+      });
+    });
+    return out;
+  }
+
+  return { IIIF, FIELDS, imgUrl, normalize: aicNormalize, SOURCES, sourceById, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource, mergePools };
 });

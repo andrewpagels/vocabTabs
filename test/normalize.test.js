@@ -139,3 +139,17 @@ test('cma adapter keeps parentheticals inside the artist name', () => {
   const r = A.sourceById('cma').normalize(raw);
   assert.strictEqual(r.artist, 'Workshop of Rembrandt (Harmenszoon) van Rijn');
 });
+
+test('mergePools dedupes on source:id and keeps cross-source numeric collisions', () => {
+  const aic = [{ id: 1, source: 'aic' }, { id: 1, source: 'aic' }];
+  const cma = [{ id: 1, source: 'cma' }];
+  const merged = A.mergePools([aic, cma]);
+  assert.strictEqual(merged.length, 2);
+  const keys = merged.map(x => x.source + ':' + x.id).sort();
+  assert.deepStrictEqual(keys, ['aic:1', 'cma:1']);
+});
+
+test('mergePools tolerates empty/missing pools', () => {
+  assert.deepStrictEqual(A.mergePools([]), []);
+  assert.deepStrictEqual(A.mergePools([null, [], undefined]), []);
+});
