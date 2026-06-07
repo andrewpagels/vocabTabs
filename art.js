@@ -38,24 +38,42 @@
     return (j.data || []).map(normalize).filter(Boolean);
   }
 
-  let poolPromise = null;
-  async function getPool() {
-    const cached = readCache();
-    if (cached) return cached;
-    if (poolPromise) return poolPromise;
-    poolPromise = (async () => {
-      // pull a few random pages for variety
-      const pages = [];
-      const start = 2 + Math.floor(Math.random() * 30);
-      for (let i = 0; i < 3; i++) pages.push(start + i);
-      const results = await Promise.allSettled(pages.map(fetchPage));
+  // Load the bundled pool that ships with the extension. Always available, no network.
+  async function loadBundled() {
+    try {
+      const r = await fetch('artworks.json');
+      if (!r.ok) return [];
+      const items = await r.json();
+      return Array.isArray(items) ? items : [];
+    } catch (e) { return []; }
+  }
+
+  // Non-blocking: try the live API and, on success, refresh the cache for next time.
+  function refreshInBackground() {
+    const pages = [];
+    const start = 2 + Math.floor(Math.random() * 30);
+    for (let i = 0; i < 3; i++) pages.push(start + i);
+    Promise.allSettled(pages.map(fetchPage)).then(results => {
       let items = [];
       results.forEach(r => { if (r.status === 'fulfilled') items = items.concat(r.value); });
-      // de-dup by id
       const seen = new Set();
       items = items.filter(it => (seen.has(it.id) ? false : (seen.add(it.id), true)));
       if (items.length) writeCache(items);
-      return items;
+    }).catch(() => {});
+  }
+
+  let poolPromise = null;
+  async function getPool() {
+    // 1. Fresh cache wins (may have been refreshed on a prior load).
+    const cached = readCache();
+    if (cached) { refreshInBackground(); return cached; }
+    if (poolPromise) return poolPromise;
+    poolPromise = (async () => {
+      // 2. Bundled pool — instant, offline, cross-browser.
+      const bundled = await loadBundled();
+      // 3. Kick off a background refresh for next time; do not await it.
+      refreshInBackground();
+      return bundled;
     })();
     return poolPromise;
   }
