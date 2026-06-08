@@ -71,6 +71,22 @@
     return out;
   }
 
+  // Add or overwrite a single word. Case-insensitive match on the word itself.
+  // Returns { words, existed } so callers can tailor their feedback.
+  function addWord(words, { word, definition, example }) {
+    word = (word || '').trim();
+    definition = (definition || '').trim();
+    example = (example || '').trim();
+    if (!word) return { words, existed: false };
+    const i = words.findIndex(x => x.word.toLowerCase() === word.toLowerCase());
+    if (i >= 0) {
+      const next = [...words];
+      next[i] = { ...next[i], definition, example };
+      return { words: next, existed: true };
+    }
+    return { words: [...words, { word, definition, example, weight: 3, learned: false }], existed: false };
+  }
+
   function active(words) { return words.filter(w => !w.learned); }
 
   function pickWeighted(words, prevWord) {
@@ -100,5 +116,5 @@
     return [...words];
   }
 
-  window.Vocab = { load, save, parseCSV, pickWeighted, adjust, setLearned, active, SAMPLE };
+  window.Vocab = { load, save, parseCSV, addWord, pickWeighted, adjust, setLearned, active, SAMPLE };
 })();

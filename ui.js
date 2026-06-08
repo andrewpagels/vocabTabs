@@ -69,6 +69,11 @@
         d: "M7 10l5-5 5 5"
       }), /*#__PURE__*/React.createElement("path", {
         d: "M5 19h14"
+      })),
+      plus: /*#__PURE__*/React.createElement("g", null, /*#__PURE__*/React.createElement("path", {
+        d: "M12 5v14"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M5 12h14"
       }))
     };
     return /*#__PURE__*/React.createElement("svg", {
@@ -195,10 +200,17 @@
     onToggleSource,
     onClose,
     onImport,
+    onAddWord,
     onReset
   }) {
     const fileRef = useRef(null);
     const [msg, setMsg] = useState('');
+    const [showAdd, setShowAdd] = useState(false);
+    const [nw, setNw] = useState({
+      word: '',
+      definition: '',
+      example: ''
+    });
     const active = words.filter(w => !w.learned);
     const learned = words.filter(w => w.learned);
     function handleFile(e) {
@@ -215,6 +227,24 @@
         setMsg(`Imported ${parsed.length} words.`);
       };
       reader.readAsText(f);
+    }
+    function submitAdd() {
+      const word = nw.word.trim();
+      if (!word) {
+        setMsg('Enter a word to add.');
+        return;
+      }
+      onAddWord({
+        word,
+        definition: nw.definition,
+        example: nw.example
+      });
+      setNw({
+        word: '',
+        definition: '',
+        example: ''
+      });
+      setShowAdd(false);
     }
     return /*#__PURE__*/React.createElement("div", {
       className: "vt-modal-scrim",
@@ -258,7 +288,62 @@
       accept: ".csv,text/csv",
       hidden: true,
       onChange: handleFile
-    })), msg && /*#__PURE__*/React.createElement("div", {
+    })), !showAdd ? /*#__PURE__*/React.createElement("button", {
+      className: "vt-addbtn",
+      onClick: () => {
+        setShowAdd(true);
+        setMsg('');
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "plus"
+    }), " ", /*#__PURE__*/React.createElement("span", null, "Add new word")) : /*#__PURE__*/React.createElement("div", {
+      className: "vt-addform"
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "vt-addinput",
+      placeholder: "Word",
+      autoFocus: true,
+      value: nw.word,
+      onChange: e => setNw({
+        ...nw,
+        word: e.target.value
+      }),
+      onKeyDown: e => {
+        if (e.key === 'Enter') submitAdd();
+      }
+    }), /*#__PURE__*/React.createElement("textarea", {
+      className: "vt-addinput",
+      placeholder: "Definition",
+      rows: 2,
+      value: nw.definition,
+      onChange: e => setNw({
+        ...nw,
+        definition: e.target.value
+      })
+    }), /*#__PURE__*/React.createElement("textarea", {
+      className: "vt-addinput",
+      placeholder: "Example sentence",
+      rows: 2,
+      value: nw.example,
+      onChange: e => setNw({
+        ...nw,
+        example: e.target.value
+      })
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "vt-addform-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "vt-textbtn",
+      onClick: () => {
+        setShowAdd(false);
+        setNw({
+          word: '',
+          definition: '',
+          example: ''
+        });
+      }
+    }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+      className: "vt-addsave",
+      onClick: submitAdd
+    }, "Add word"))), msg && /*#__PURE__*/React.createElement("div", {
       className: "vt-msg"
     }, msg), /*#__PURE__*/React.createElement("div", {
       className: "vt-counts"

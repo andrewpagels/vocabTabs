@@ -13,7 +13,8 @@ function Icon({ name, accent }) {
     close: <g><path d="M6 6l12 12" /><path d="M18 6L6 18" /></g>,
     info: <g><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 7.5v.5" /></g>,
     ext: <g><path d="M14 5h5v5" /><path d="M19 5l-8 8" /><path d="M19 13v6H5V5h6" /></g>,
-    upload: <g><path d="M12 16V5" /><path d="M7 10l5-5 5 5" /><path d="M5 19h14" /></g>
+    upload: <g><path d="M12 16V5" /><path d="M7 10l5-5 5 5" /><path d="M5 19h14" /></g>,
+    plus: <g><path d="M12 5v14" /><path d="M5 12h14" /></g>
   };
   return <svg viewBox="0 0 24 24" style={s}>{paths[name]}</svg>;
 }
@@ -81,9 +82,11 @@ function ArtistPlacard({ art, accent, alwaysOpen }) {
 }
 
 // Manage words panel (CSV upload + list).
-function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onReset }) {
+function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onAddWord, onReset }) {
   const fileRef = useRef(null);
   const [msg, setMsg] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [nw, setNw] = useState({ word: '', definition: '', example: '' });
   const active = words.filter(w => !w.learned);
   const learned = words.filter(w => w.learned);
 
@@ -98,6 +101,14 @@ function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onRese
       setMsg(`Imported ${parsed.length} words.`);
     };
     reader.readAsText(f);
+  }
+
+  function submitAdd() {
+    const word = nw.word.trim();
+    if (!word) { setMsg('Enter a word to add.'); return; }
+    onAddWord({ word, definition: nw.definition, example: nw.example });
+    setNw({ word: '', definition: '', example: '' });
+    setShowAdd(false);
   }
 
   return (
@@ -136,6 +147,41 @@ function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onRese
           </div>
           <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={handleFile} />
         </div>
+
+        {!showAdd ? (
+          <button className="vt-addbtn" onClick={() => { setShowAdd(true); setMsg(''); }}>
+            <Icon name="plus" /> <span>Add new word</span>
+          </button>
+        ) : (
+          <div className="vt-addform">
+            <input
+              className="vt-addinput"
+              placeholder="Word"
+              autoFocus
+              value={nw.word}
+              onChange={e => setNw({ ...nw, word: e.target.value })}
+              onKeyDown={e => { if (e.key === 'Enter') submitAdd(); }}
+            />
+            <textarea
+              className="vt-addinput"
+              placeholder="Definition"
+              rows={2}
+              value={nw.definition}
+              onChange={e => setNw({ ...nw, definition: e.target.value })}
+            />
+            <textarea
+              className="vt-addinput"
+              placeholder="Example sentence"
+              rows={2}
+              value={nw.example}
+              onChange={e => setNw({ ...nw, example: e.target.value })}
+            />
+            <div className="vt-addform-actions">
+              <button className="vt-textbtn" onClick={() => { setShowAdd(false); setNw({ word: '', definition: '', example: '' }); }}>Cancel</button>
+              <button className="vt-addsave" onClick={submitAdd}>Add word</button>
+            </div>
+          </div>
+        )}
         {msg && <div className="vt-msg">{msg}</div>}
 
         <div className="vt-counts">

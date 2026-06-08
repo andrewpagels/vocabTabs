@@ -84,6 +84,11 @@ function App() {
     flash('Imported ' + parsed.length + ' words');
     shuffle(parsed);
   };
+  const onAddWord = (entry) => {
+    const { words: updated, existed } = window.Vocab.addWord(words, entry);
+    window.Vocab.save(updated); setWords(updated);
+    flash((existed ? 'Updated "' : 'Added "') + entry.word.trim() + '"');
+  };
   const onToggleSource = async (id, enabled) => {
     const next = window.ArtService.setSourceEnabled(id, enabled);
     setSources(next);
@@ -142,7 +147,7 @@ function App() {
       {managing && <ManagePanel words={words} sources={sources}
                                 onToggleSource={onToggleSource}
                                 onClose={() => setManaging(false)}
-                                onImport={onImport} onReset={onReset} />}
+                                onImport={onImport} onAddWord={onAddWord} onReset={onReset} />}
       <Toast text={toast} />
     </div>
   );
