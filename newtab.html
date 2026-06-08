@@ -198,11 +198,13 @@
   .vt-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 4px 9px; border-radius: 999px; background: rgba(42,39,35,.08); color: rgba(42,39,35,.6); }
   .vt-tag.freq { background: rgba(42,39,35,.06); }
 
-  .vt-sources { margin: 14px 0; }
-  .vt-sources-head { font-weight: 700; font-size: 13px; letter-spacing: .02em;
-    text-transform: uppercase; opacity: .7; margin-bottom: 8px; }
+  .vt-section-head { padding: 18px 24px 6px; }
+  .vt-section-head h2 { font-family: 'Lora', serif; font-weight: 600; font-size: 24px; margin: 0; }
+
+  .vt-sources { padding: 0 24px; }
   .vt-source-row { display: flex; align-items: center; gap: 10px;
-    padding: 6px 0; cursor: pointer; font-size: 15px; }
+    padding: 12px 0; cursor: pointer; font-size: 15px; border-top: 1px solid rgba(42,39,35,.1); }
+  .vt-source-row:first-child { border-top: none; }
   .vt-source-row input { width: 16px; height: 16px; cursor: pointer; }
   .vt-source-row.locked { cursor: default; }
   .vt-source-hint { margin-left: auto; font-style: normal; font-size: 12px; opacity: .55; }

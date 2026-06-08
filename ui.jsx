@@ -104,22 +104,11 @@ function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onRese
     <div className="vt-modal-scrim" onClick={onClose}>
       <div className="vt-modal" onClick={e => e.stopPropagation()}>
         <div className="vt-modal-head">
-          <h2>Manage words</h2>
+          <h2>Manage art sources</h2>
           <button className="vt-iconbtn" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
         </div>
 
-        <div className="vt-upload" onClick={() => fileRef.current && fileRef.current.click()}>
-          <Icon name="upload" />
-          <div>
-            <strong>Upload a CSV</strong>
-            <p>Column A <em>word</em> &middot; Column B <em>definition</em> &middot; Column C <em>example sentence</em></p>
-          </div>
-          <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={handleFile} />
-        </div>
-        {msg && <div className="vt-msg">{msg}</div>}
-
         <div className="vt-sources">
-          <div className="vt-sources-head">Art sources</div>
           {(sources || []).map(s => {
             const onlyEnabled = sources.filter(x => x.enabled).length === 1 && s.enabled;
             return (
@@ -136,6 +125,18 @@ function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onRese
             );
           })}
         </div>
+
+        <div className="vt-section-head"><h2>Manage words</h2></div>
+
+        <div className="vt-upload" onClick={() => fileRef.current && fileRef.current.click()}>
+          <Icon name="upload" />
+          <div>
+            <strong>Upload a CSV</strong>
+            <p>Column A <em>word</em> &middot; Column B <em>definition</em> &middot; Column C <em>example sentence</em></p>
+          </div>
+          <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={handleFile} />
+        </div>
+        {msg && <div className="vt-msg">{msg}</div>}
 
         <div className="vt-counts">
           <span><strong>{active.length}</strong> in rotation</span>

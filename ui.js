@@ -224,30 +224,15 @@
       onClick: e => e.stopPropagation()
     }, /*#__PURE__*/React.createElement("div", {
       className: "vt-modal-head"
-    }, /*#__PURE__*/React.createElement("h2", null, "Manage words"), /*#__PURE__*/React.createElement("button", {
+    }, /*#__PURE__*/React.createElement("h2", null, "Manage art sources"), /*#__PURE__*/React.createElement("button", {
       className: "vt-iconbtn",
       onClick: onClose,
       "aria-label": "Close"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "close"
     }))), /*#__PURE__*/React.createElement("div", {
-      className: "vt-upload",
-      onClick: () => fileRef.current && fileRef.current.click()
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "upload"
-    }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "Upload a CSV"), /*#__PURE__*/React.createElement("p", null, "Column A ", /*#__PURE__*/React.createElement("em", null, "word"), " \xB7 Column B ", /*#__PURE__*/React.createElement("em", null, "definition"), " \xB7 Column C ", /*#__PURE__*/React.createElement("em", null, "example sentence"))), /*#__PURE__*/React.createElement("input", {
-      ref: fileRef,
-      type: "file",
-      accept: ".csv,text/csv",
-      hidden: true,
-      onChange: handleFile
-    })), msg && /*#__PURE__*/React.createElement("div", {
-      className: "vt-msg"
-    }, msg), /*#__PURE__*/React.createElement("div", {
       className: "vt-sources"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "vt-sources-head"
-    }, "Art sources"), (sources || []).map(s => {
+    }, (sources || []).map(s => {
       const onlyEnabled = sources.filter(x => x.enabled).length === 1 && s.enabled;
       return /*#__PURE__*/React.createElement("label", {
         key: s.id,
@@ -261,6 +246,21 @@
         className: "vt-source-hint"
       }, "at least one required"));
     })), /*#__PURE__*/React.createElement("div", {
+      className: "vt-section-head"
+    }, /*#__PURE__*/React.createElement("h2", null, "Manage words")), /*#__PURE__*/React.createElement("div", {
+      className: "vt-upload",
+      onClick: () => fileRef.current && fileRef.current.click()
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "upload"
+    }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "Upload a CSV"), /*#__PURE__*/React.createElement("p", null, "Column A ", /*#__PURE__*/React.createElement("em", null, "word"), " \xB7 Column B ", /*#__PURE__*/React.createElement("em", null, "definition"), " \xB7 Column C ", /*#__PURE__*/React.createElement("em", null, "example sentence"))), /*#__PURE__*/React.createElement("input", {
+      ref: fileRef,
+      type: "file",
+      accept: ".csv,text/csv",
+      hidden: true,
+      onChange: handleFile
+    })), msg && /*#__PURE__*/React.createElement("div", {
+      className: "vt-msg"
+    }, msg), /*#__PURE__*/React.createElement("div", {
       className: "vt-counts"
     }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, active.length), " in rotation"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, learned.length), " learned"), /*#__PURE__*/React.createElement("button", {
       className: "vt-textbtn",
