@@ -1,2 +1,5 @@
 node_modules/
 screenshots/
+.DS_Store
+_metadata/
+errors/
