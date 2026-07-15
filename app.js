@@ -44,6 +44,7 @@
     const [art, setArt] = useState(null);
     const [word, setWord] = useState(null);
     const [managing, setManaging] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [toast, setToast] = useState('');
     const [sources, setSources] = useState(() => window.ArtService.getSources());
     const [loading, setLoading] = useState(true);
@@ -51,40 +52,48 @@
     const prevWord = useRef(null);
     const toastTimer = useRef(null);
     const poolRef = useRef(null);
+    const poolRequest = useRef(0);
+    const shuffleRequest = useRef(0);
     const flash = useCallback(text => {
       setToast(text);
       clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setToast(''), 1900);
     }, []);
-    const shuffle = useCallback(async wordsArg => {
+    const shuffle = useCallback(async (wordsArg, poolArg, poolRequestId) => {
+      const request = ++shuffleRequest.current;
       const ws = wordsArg || words;
-      const p = poolRef.current && poolRef.current.length ? poolRef.current : window.ArtService.FALLBACK;
+      const p = poolArg && poolArg.length ? poolArg : poolRef.current && poolRef.current.length ? poolRef.current : window.ArtService.FALLBACK;
       const nextArt = window.ArtService.pickRandom(p, prevArt.current && prevArt.current.id);
       const nextWord = window.Vocab.pickWeighted(ws, prevWord.current && prevWord.current.word);
-      prevArt.current = nextArt;
-      prevWord.current = nextWord;
       if (nextArt && nextArt.image) {
         await window.ArtService.preload(nextArt);
       }
+      if (request !== shuffleRequest.current || poolRequestId && poolRequestId !== poolRequest.current) return false;
+      prevArt.current = nextArt;
+      prevWord.current = nextWord;
       setArt(nextArt);
       setWord(nextWord);
       setLoading(false);
+      return true;
     }, [words]);
 
     // initial load
     useEffect(() => {
       let done = false;
+      const request = ++poolRequest.current;
       window.ArtService.getPool().then(items => {
+        if (done || request !== poolRequest.current) return;
         poolRef.current = items;
         setPool(items);
-        if (!done) shuffle();
+        shuffle(undefined, items, request);
       }).catch(() => {
+        if (done || request !== poolRequest.current) return;
         poolRef.current = window.ArtService.FALLBACK;
         setPool([]);
-        if (!done) shuffle();
+        shuffle(undefined, window.ArtService.FALLBACK, request);
       });
       const tmr = setTimeout(() => {
-        if (!poolRef.current) shuffle();
+        if (request === poolRequest.current && !poolRef.current) shuffle(undefined, undefined, request);
       }, 3500);
       return () => {
         done = true;
@@ -137,12 +146,23 @@
     const onToggleSource = async (id, enabled) => {
       const next = window.ArtService.setSourceEnabled(id, enabled);
       setSources(next);
-      const merged = await window.ArtService.getPool();
-      poolRef.current = merged;
-      setPool(merged);
-      shuffle();
-      const label = (next.find(s => s.id === id) || {}).label || 'Source';
-      flash(enabled ? label + ' added' : label + ' removed');
+      setLoading(true);
+      const request = ++poolRequest.current;
+      try {
+        const merged = await window.ArtService.getPool();
+        if (request !== poolRequest.current) return;
+        poolRef.current = merged;
+        setPool(merged);
+        const applied = await shuffle(undefined, merged, request);
+        if (!applied) return;
+        const label = (next.find(s => s.id === id) || {}).label || 'Source';
+        flash(enabled ? label + ' added' : label + ' removed');
+      } catch (e) {
+        if (request === poolRequest.current) {
+          setLoading(false);
+          flash('Could not change picture sources');
+        }
+      }
     };
     const onReset = () => {
       const fresh = window.Vocab.SAMPLE.map(w => ({
@@ -158,12 +178,13 @@
     useEffect(() => {
       function onKey(e) {
         if (e.key === 'Escape') {
-          if (managing) setManaging(false);
+          if (settingsOpen) setSettingsOpen(false);else if (managing) setManaging(false);
           return;
         }
-        if (managing) return; // panel open — don't hijack
+        if (managing || settingsOpen) return; // panel open — don't hijack
         const el = document.activeElement;
-        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+        if (el && (el.matches('input, textarea, select') || el.isContentEditable)) return;
+        if (el && el.matches('button, a, [role="button"]') && (e.key === ' ' || e.key === 'Enter')) return;
         const k = e.key.toLowerCase();
         if (e.key === ' ' || e.key === 'ArrowRight') {
           e.preventDefault();
@@ -177,25 +198,27 @@
         } else if (k === 'l') {
           onLearned();
         } else if (k === 'm') {
+          setSettingsOpen(false);
           setManaging(true);
         }
       }
       window.addEventListener('keydown', onKey);
       return () => window.removeEventListener('keydown', onKey);
-    }, [managing, onNext, onMore, onLess, onLearned]);
+    }, [managing, settingsOpen, onNext, onMore, onLess, onLearned]);
     const controls = /*#__PURE__*/React.createElement(ControlBar, {
       accent: accent,
       onLess: onLess,
       onMore: onMore,
       onNext: onNext,
       onLearned: onLearned,
-      onManage: () => setManaging(true)
+      onManage: () => {
+        setSettingsOpen(false);
+        setManaging(true);
+      }
     });
     return /*#__PURE__*/React.createElement("div", {
       className: "vt-root"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "vt-wordmark"
-    }, "Vocab\xA0Tabs"), /*#__PURE__*/React.createElement(DirectionPlacard, {
+    }, /*#__PURE__*/React.createElement(DirectionPlacard, {
       art: art,
       word: word,
       accent: accent,
@@ -207,15 +230,24 @@
       className: "vt-loading"
     }, /*#__PURE__*/React.createElement("div", {
       className: "vt-loading-dot"
-    }), /*#__PURE__*/React.createElement("span", null, "finding a painting", '…')), !loading && !words.filter(w => !w.learned).length && /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/React.createElement("span", null, "finding a picture", '…')), !loading && !words.filter(w => !w.learned).length && /*#__PURE__*/React.createElement("div", {
       className: "vt-empty"
     }, /*#__PURE__*/React.createElement("h2", null, "Every word learned ", '—', " nicely done."), /*#__PURE__*/React.createElement("p", null, "Upload a new CSV or reset the rotation to keep going."), /*#__PURE__*/React.createElement("button", {
       className: "vt-textbtn light",
-      onClick: () => setManaging(true)
-    }, "Manage words")), managing && /*#__PURE__*/React.createElement(ManagePanel, {
-      words: words,
+      onClick: () => {
+        setSettingsOpen(false);
+        setManaging(true);
+      }
+    }, "Manage words")), /*#__PURE__*/React.createElement(SourceSettings, {
+      open: settingsOpen,
       sources: sources,
-      onToggleSource: onToggleSource,
+      onOpenChange: open => {
+        if (open) setManaging(false);
+        setSettingsOpen(open);
+      },
+      onToggleSource: onToggleSource
+    }), managing && /*#__PURE__*/React.createElement(ManagePanel, {
+      words: words,
       onClose: () => setManaging(false),
       onImport: onImport,
       onAddWord: onAddWord,

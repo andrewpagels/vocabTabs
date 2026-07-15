@@ -1,4 +1,4 @@
-// art.js — multi-source public-domain art service for Vocab Tabs.
+// art.js — multi-source picture service for Vocab Tabs.
 // window.ArtService: getPool, pickRandom, accentFrom, preload, imgUrl,
 //                    getSources, setSourceEnabled, FALLBACK.
 (function () {
@@ -27,7 +27,12 @@
   }
   function getSources() {
     const s = loadSettings();
-    return SOURCES.map(src => ({ id: src.id, label: src.label, enabled: !!s[src.id] }));
+    return SOURCES.map(src => ({
+      id: src.id,
+      label: src.label,
+      description: src.description || '',
+      enabled: !!s[src.id]
+    }));
   }
   function setSourceEnabled(id, enabled) {
     const next = toggleSource(loadSettings(), id, enabled);
@@ -93,7 +98,7 @@
   async function getPool() {
     const settings = loadSettings();
     let ids = enabledIds(settings);
-    if (!ids.length) ids = ['aic'];
+    if (!ids.length) ids = enabledIds(N.DEFAULT_SETTINGS);
     let pools = await Promise.all(ids.map(id => poolForSource(sourceById(id))));
     let merged = mergePools(pools);
     if (!merged.length && !ids.includes('aic')) {
@@ -124,7 +129,7 @@
     artistDisplay: '', date: '', medium: '', origin: '',
     imageId: null, color: { h: 32, s: 40, l: 50 },
     image: '', thumb: '', pageUrl: '#', wikiUrl: '#',
-    source: 'fallback', viewLabel: 'View source', _fallback: true
+    source: 'fallback', infoLabel: 'About this image', viewLabel: 'View source', _fallback: true
   }];
 
   window.ArtService = { getPool, pickRandom, accentFrom, preload, imgUrl,
