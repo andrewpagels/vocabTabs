@@ -14,7 +14,11 @@ function Icon({ name, accent }) {
     info: <g><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 7.5v.5" /></g>,
     ext: <g><path d="M14 5h5v5" /><path d="M19 5l-8 8" /><path d="M19 13v6H5V5h6" /></g>,
     upload: <g><path d="M12 16V5" /><path d="M7 10l5-5 5 5" /><path d="M5 19h14" /></g>,
-    plus: <g><path d="M12 5v14" /><path d="M5 12h14" /></g>
+    plus: <g><path d="M12 5v14" /><path d="M5 12h14" /></g>,
+    settings: <g>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 9 19.37a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.63 15 1.7 1.7 0 0 0 3.08 14H3v-4h.08A1.7 1.7 0 0 0 4.63 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.63h.01A1.7 1.7 0 0 0 10 3.08V3h4v.08a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9v.01A1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15z" />
+    </g>
   };
   return <svg viewBox="0 0 24 24" style={s}>{paths[name]}</svg>;
 }
@@ -51,38 +55,121 @@ function FrequencyDots({ weight, accent }) {
   );
 }
 
-// Hover / click reveal placard for artwork attribution.
+// Hover / click reveal placard for image attribution.
 function ArtistPlacard({ art, accent, alwaysOpen }) {
-  const [open, setOpen] = useState(false);
-  const show = open || alwaysOpen;
+  const [pinned, setPinned] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const show = pinned || hovered || alwaysOpen;
   if (!art || art._fallback) return null;
   return (
     <div className={"vt-placard" + (show ? " open" : "")}
-         onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <button className="vt-placard-trigger" onClick={() => setOpen(o => !o)} aria-label="About this work">
-        <Icon name="info" /> <span>About this work</span>
+         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <button className="vt-placard-trigger" onClick={() => setPinned(value => !value)}
+              aria-label={art.infoLabel || 'About this work'} aria-expanded={show}
+              aria-controls="image-attribution-details">
+        <Icon name="info" /> <span>{art.infoLabel || 'About this work'}</span>
       </button>
-      <div className="vt-placard-body">
-        <div className="vt-placard-title">{art.title}</div>
+      <div className="vt-placard-body" id="image-attribution-details" aria-hidden={!show}>
+        {art.title && <div className="vt-placard-title">{art.title}</div>}
         <div className="vt-placard-artist">{art.artistDisplay || art.artist}</div>
         <div className="vt-placard-meta">
           {[art.date, art.medium].filter(Boolean).join(' \u00b7 ')}
         </div>
         <div className="vt-placard-links">
-          <a href={art.pageUrl} target="_blank" rel="noopener" style={{ color: accent }}>
+          {art.pageUrl && <a href={art.pageUrl} target="_blank" rel="noopener" tabIndex={show ? 0 : -1} style={{ color: accent }}>
             {art.viewLabel || 'View source'} <Icon name="ext" />
-          </a>
-          <a href={art.wikiUrl} target="_blank" rel="noopener" style={{ color: accent }}>
-            About {art.artist} <Icon name="ext" />
-          </a>
+          </a>}
+          {art.wikiUrl && <a href={art.wikiUrl} target="_blank" rel="noopener" tabIndex={show ? 0 : -1} style={{ color: accent }}>
+            {art.artistLinkLabel || `About ${art.artist}`} <Icon name="ext" />
+          </a>}
+          {art.providerUrl && <a href={art.providerUrl} target="_blank" rel="noopener" tabIndex={show ? 0 : -1} style={{ color: accent }}>
+            {art.providerLabel || 'About this source'} <Icon name="ext" />
+          </a>}
         </div>
       </div>
     </div>
   );
 }
 
+function SourceSettings({ open, sources, onOpenChange, onToggleSource }) {
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
+  const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+      const firstChoice = panelRef.current && panelRef.current.querySelector('input:not(:disabled)');
+      if (firstChoice) firstChoice.focus();
+    } else if (wasOpen.current && triggerRef.current) {
+      triggerRef.current.focus();
+    }
+    wasOpen.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) onOpenChange(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open, onOpenChange]);
+
+  const enabledCount = (sources || []).filter(s => s.enabled).length;
+
+  function trapFocus(e) {
+    if (!open || e.key !== 'Tab' || !rootRef.current) return;
+    const focusable = Array.from(rootRef.current.querySelectorAll(
+      'button:not(:disabled), input:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])'
+    ));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  }
+
+  return (
+    <div className="vt-settings" ref={rootRef} onKeyDown={trapFocus}>
+      {open && (
+        <div className="vt-settings-panel" id="picture-source-settings" ref={panelRef}
+             role="dialog" aria-labelledby="picture-source-title">
+          <h2 id="picture-source-title">Picture sources</h2>
+          <p>Choose one or more collections for your new tabs.</p>
+          <div className="vt-settings-sources">
+            {(sources || []).map(source => {
+              const onlyEnabled = enabledCount === 1 && source.enabled;
+              return (
+                <label key={source.id} className={'vt-settings-source' + (onlyEnabled ? ' locked' : '')}>
+                  <input type="checkbox" checked={source.enabled} disabled={onlyEnabled}
+                         onChange={e => onToggleSource(source.id, e.target.checked)} />
+                  <span>
+                    <strong>{source.label}</strong>
+                    {source.description && <small>{source.description}</small>}
+                  </span>
+                  {onlyEnabled && <em>Required</em>}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <button ref={triggerRef} type="button" className="vt-settings-trigger"
+              aria-label="Picture settings" aria-expanded={open}
+              aria-controls="picture-source-settings"
+              onClick={() => onOpenChange(!open)}>
+        <Icon name="settings" />
+      </button>
+    </div>
+  );
+}
+
 // Manage words panel (CSV upload + list).
-function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onAddWord, onReset }) {
+function ManagePanel({ words, onClose, onImport, onAddWord, onReset }) {
   const fileRef = useRef(null);
   const [msg, setMsg] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -115,29 +202,9 @@ function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onAddW
     <div className="vt-modal-scrim" onClick={onClose}>
       <div className="vt-modal" onClick={e => e.stopPropagation()}>
         <div className="vt-modal-head">
-          <h2>Manage art sources</h2>
-          <button className="vt-iconbtn" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
+          <h2>Manage words</h2>
+          <button className="vt-iconbtn" onClick={onClose} aria-label="Close" autoFocus><Icon name="close" /></button>
         </div>
-
-        <div className="vt-sources">
-          {(sources || []).map(s => {
-            const onlyEnabled = sources.filter(x => x.enabled).length === 1 && s.enabled;
-            return (
-              <label key={s.id} className={"vt-source-row" + (onlyEnabled ? " locked" : "")}>
-                <input
-                  type="checkbox"
-                  checked={s.enabled}
-                  disabled={onlyEnabled}
-                  onChange={(e) => onToggleSource(s.id, e.target.checked)}
-                />
-                <span>{s.label}</span>
-                {onlyEnabled && <em className="vt-source-hint">at least one required</em>}
-              </label>
-            );
-          })}
-        </div>
-
-        <div className="vt-section-head"><h2>Manage words</h2></div>
 
         <div className="vt-upload" onClick={() => fileRef.current && fileRef.current.click()}>
           <Icon name="upload" />
@@ -212,8 +279,8 @@ function ManagePanel({ words, sources, onToggleSource, onClose, onImport, onAddW
 // Toast feedback
 function Toast({ text }) {
   if (!text) return null;
-  return <div className="vt-toast">{text}</div>;
+  return <div className="vt-toast" role="status" aria-live="polite">{text}</div>;
 }
 
-Object.assign(window, { Icon, CtrlButton, FrequencyDots, ArtistPlacard, ManagePanel, Toast });
+Object.assign(window, { Icon, CtrlButton, FrequencyDots, ArtistPlacard, SourceSettings, ManagePanel, Toast });
 })();

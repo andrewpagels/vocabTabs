@@ -23,6 +23,7 @@ function App() {
   const [art, setArt] = useState(null);
   const [word, setWord] = useState(null);
   const [managing, setManaging] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [sources, setSources] = useState(() => window.ArtService.getSources());
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,8 @@ function App() {
   const prevWord = useRef(null);
   const toastTimer = useRef(null);
   const poolRef = useRef(null);
+  const poolRequest = useRef(0);
+  const shuffleRequest = useRef(0);
 
   const flash = useCallback((text) => {
     setToast(text);
@@ -37,25 +40,40 @@ function App() {
     toastTimer.current = setTimeout(() => setToast(''), 1900);
   }, []);
 
-  const shuffle = useCallback(async (wordsArg) => {
+  const shuffle = useCallback(async (wordsArg, poolArg, poolRequestId) => {
+    const request = ++shuffleRequest.current;
     const ws = wordsArg || words;
-    const p = poolRef.current && poolRef.current.length ? poolRef.current : window.ArtService.FALLBACK;
+    const p = poolArg && poolArg.length
+      ? poolArg
+      : (poolRef.current && poolRef.current.length ? poolRef.current : window.ArtService.FALLBACK);
     const nextArt = window.ArtService.pickRandom(p, prevArt.current && prevArt.current.id);
     const nextWord = window.Vocab.pickWeighted(ws, prevWord.current && prevWord.current.word);
-    prevArt.current = nextArt; prevWord.current = nextWord;
     if (nextArt && nextArt.image) {
       await window.ArtService.preload(nextArt);
     }
+    if (request !== shuffleRequest.current ||
+        (poolRequestId && poolRequestId !== poolRequest.current)) return false;
+    prevArt.current = nextArt; prevWord.current = nextWord;
     setArt(nextArt); setWord(nextWord); setLoading(false);
+    return true;
   }, [words]);
 
   // initial load
   useEffect(() => {
     let done = false;
+    const request = ++poolRequest.current;
     window.ArtService.getPool()
-      .then(items => { poolRef.current = items; setPool(items); if (!done) shuffle(); })
-      .catch(() => { poolRef.current = window.ArtService.FALLBACK; setPool([]); if (!done) shuffle(); });
-    const tmr = setTimeout(() => { if (!poolRef.current) shuffle(); }, 3500);
+      .then(items => {
+        if (done || request !== poolRequest.current) return;
+        poolRef.current = items; setPool(items); shuffle(undefined, items, request);
+      })
+      .catch(() => {
+        if (done || request !== poolRequest.current) return;
+        poolRef.current = window.ArtService.FALLBACK; setPool([]); shuffle(undefined, window.ArtService.FALLBACK, request);
+      });
+    const tmr = setTimeout(() => {
+      if (request === poolRequest.current && !poolRef.current) shuffle(undefined, undefined, request);
+    }, 3500);
     return () => { done = true; clearTimeout(tmr); };
   }, []); // eslint-disable-line
 
@@ -92,11 +110,22 @@ function App() {
   const onToggleSource = async (id, enabled) => {
     const next = window.ArtService.setSourceEnabled(id, enabled);
     setSources(next);
-    const merged = await window.ArtService.getPool();
-    poolRef.current = merged; setPool(merged);
-    shuffle();
-    const label = (next.find(s => s.id === id) || {}).label || 'Source';
-    flash(enabled ? label + ' added' : label + ' removed');
+    setLoading(true);
+    const request = ++poolRequest.current;
+    try {
+      const merged = await window.ArtService.getPool();
+      if (request !== poolRequest.current) return;
+      poolRef.current = merged; setPool(merged);
+      const applied = await shuffle(undefined, merged, request);
+      if (!applied) return;
+      const label = (next.find(s => s.id === id) || {}).label || 'Source';
+      flash(enabled ? label + ' added' : label + ' removed');
+    } catch (e) {
+      if (request === poolRequest.current) {
+        setLoading(false);
+        flash('Could not change picture sources');
+      }
+    }
   };
 
   const onReset = () => {
@@ -108,44 +137,51 @@ function App() {
   // keyboard shortcuts — defined after the handlers so they exist when this runs
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') { if (managing) setManaging(false); return; }
-      if (managing) return; // panel open — don't hijack
+      if (e.key === 'Escape') {
+        if (settingsOpen) setSettingsOpen(false);
+        else if (managing) setManaging(false);
+        return;
+      }
+      if (managing || settingsOpen) return; // panel open — don't hijack
       const el = document.activeElement;
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      if (el && (el.matches('input, textarea, select') || el.isContentEditable)) return;
+      if (el && el.matches('button, a, [role="button"]') && (e.key === ' ' || e.key === 'Enter')) return;
       const k = e.key.toLowerCase();
       if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); onNext(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); onMore(); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); onLess(); }
       else if (k === 'l') { onLearned(); }
-      else if (k === 'm') { setManaging(true); }
+      else if (k === 'm') { setSettingsOpen(false); setManaging(true); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [managing, onNext, onMore, onLess, onLearned]);
+  }, [managing, settingsOpen, onNext, onMore, onLess, onLearned]);
 
-  const controls = <ControlBar accent={accent} onLess={onLess} onMore={onMore} onNext={onNext} onLearned={onLearned} onManage={() => setManaging(true)} />;
+  const controls = <ControlBar accent={accent} onLess={onLess} onMore={onMore} onNext={onNext} onLearned={onLearned}
+                               onManage={() => { setSettingsOpen(false); setManaging(true); }} />;
 
   return (
     <div className="vt-root">
-      <div className="vt-wordmark">Vocab&nbsp;Tabs</div>
       <DirectionPlacard art={art} word={word} accent={accent}
                         scrim={SCRIM} textScale={TEXT_SCALE} alwaysInfo={false}
                         controls={controls} />
 
       {loading && (
-        <div className="vt-loading"><div className="vt-loading-dot" /><span>finding a painting{'…'}</span></div>
+        <div className="vt-loading"><div className="vt-loading-dot" /><span>finding a picture{'…'}</span></div>
       )}
 
       {(!loading && (!words.filter(w => !w.learned).length)) && (
         <div className="vt-empty">
           <h2>Every word learned {'—'} nicely done.</h2>
           <p>Upload a new CSV or reset the rotation to keep going.</p>
-          <button className="vt-textbtn light" onClick={() => setManaging(true)}>Manage words</button>
+          <button className="vt-textbtn light" onClick={() => { setSettingsOpen(false); setManaging(true); }}>Manage words</button>
         </div>
       )}
 
-      {managing && <ManagePanel words={words} sources={sources}
-                                onToggleSource={onToggleSource}
+      <SourceSettings open={settingsOpen} sources={sources}
+                      onOpenChange={(open) => { if (open) setManaging(false); setSettingsOpen(open); }}
+                      onToggleSource={onToggleSource} />
+      {managing && <ManagePanel words={words}
                                 onClose={() => setManaging(false)}
                                 onImport={onImport} onAddWord={onAddWord} onReset={onReset} />}
       <Toast text={toast} />

@@ -39,6 +39,7 @@
   const AIC = {
     id: 'aic',
     label: 'Art Institute of Chicago',
+    description: 'Public-domain works from the museum collection',
     viewLabel: 'View at the Art Institute',
     bundle: 'artworks.aic.json',
     liveRefresh: true,
@@ -75,6 +76,7 @@
   const MET = {
     id: 'met',
     label: 'The Metropolitan Museum of Art',
+    description: 'Public-domain works from The Met',
     viewLabel: 'View at The Met',
     bundle: 'artworks.met.json',
     liveRefresh: false,
@@ -115,6 +117,7 @@
   const CMA = {
     id: 'cma',
     label: 'The Cleveland Museum of Art',
+    description: 'Open-access works from Cleveland',
     viewLabel: 'View at the Cleveland Museum of Art',
     bundle: 'artworks.cma.json',
     liveRefresh: true,
@@ -124,14 +127,59 @@
     normalize: cmaNormalize
   };
 
-  const SOURCES = [AIC, MET, CMA];
+  function picsumImageUrl(id, width, height) {
+    return `https://picsum.photos/id/${id}/${width}/${height}`;
+  }
+
+  function picsumNormalize(d) {
+    if (!d || d.id === undefined || !d.author) return null;
+    const width = Number(d.width) || 0;
+    const height = Number(d.height) || 0;
+    // Full-bleed backgrounds need enough landscape area to survive a cover crop.
+    if (!width || !height || width / height < 1.2) return null;
+    return {
+      id: String(d.id),
+      title: '',
+      artist: d.author,
+      artistDisplay: `Photo by ${d.author}`,
+      date: '',
+      medium: 'Photography',
+      origin: '',
+      imageId: null,
+      color: null,
+      image: picsumImageUrl(d.id, 1920, 1080),
+      thumb: picsumImageUrl(d.id, 320, 180),
+      pageUrl: d.url || `https://picsum.photos/id/${d.id}/info`,
+      wikiUrl: '',
+      source: 'picsum',
+      infoLabel: 'About this photo',
+      viewLabel: 'View original photo',
+      providerUrl: 'https://picsum.photos/',
+      providerLabel: 'Photos via Lorem Picsum'
+    };
+  }
+
+  const PICSUM = {
+    id: 'picsum',
+    label: 'Photography',
+    description: 'Landscape photos via Lorem Picsum',
+    viewLabel: 'View original photo',
+    bundle: 'photos.picsum.json',
+    liveRefresh: false,
+    buildPages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    searchUrl: (page) => `https://picsum.photos/v2/list?page=${page}&limit=100`,
+    extract: (j) => (Array.isArray(j) ? j : []),
+    normalize: picsumNormalize
+  };
+
+  const SOURCES = [PICSUM, AIC, MET, CMA];
   function sourceById(id) { return SOURCES.find(s => s.id === id) || null; }
 
-  const SOURCE_IDS = ['aic', 'met', 'cma'];
-  const DEFAULT_SETTINGS = Object.freeze({ aic: true, met: false, cma: false });
+  const SOURCE_IDS = ['picsum', 'aic', 'met', 'cma'];
+  const DEFAULT_SETTINGS = Object.freeze({ picsum: true, aic: false, met: false, cma: false });
 
   function readSettings(raw) {
-    const out = { aic: false, met: false, cma: false };
+    const out = { picsum: false, aic: false, met: false, cma: false };
     const obj = (raw && typeof raw === 'object') ? raw : null;
     if (!obj) return { ...DEFAULT_SETTINGS };
     let any = false;
@@ -165,5 +213,5 @@
     return out;
   }
 
-  return { IIIF, FIELDS, imgUrl, normalize: aicNormalize, SOURCES, sourceById, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource, mergePools };
+  return { IIIF, FIELDS, imgUrl, picsumImageUrl, normalize: aicNormalize, SOURCES, sourceById, SOURCE_IDS, DEFAULT_SETTINGS, readSettings, enabledIds, toggleSource, mergePools };
 });

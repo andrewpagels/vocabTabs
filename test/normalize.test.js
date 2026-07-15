@@ -1,37 +1,45 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const A = require('../art-normalize.js');
 
-test('DEFAULT_SETTINGS is AIC-only', () => {
-  assert.deepStrictEqual(A.DEFAULT_SETTINGS, { aic: true, met: false, cma: false });
+test('DEFAULT_SETTINGS is photography-only', () => {
+  assert.deepStrictEqual(A.DEFAULT_SETTINGS, { picsum: true, aic: false, met: false, cma: false });
 });
 
-test('readSettings sanitizes garbage to AIC-only default', () => {
-  assert.deepStrictEqual(A.readSettings(null), { aic: true, met: false, cma: false });
-  assert.deepStrictEqual(A.readSettings('nonsense'), { aic: true, met: false, cma: false });
+test('readSettings sanitizes garbage to the photography default', () => {
+  assert.deepStrictEqual(A.readSettings(null), { picsum: true, aic: false, met: false, cma: false });
+  assert.deepStrictEqual(A.readSettings('nonsense'), { picsum: true, aic: false, met: false, cma: false });
   assert.deepStrictEqual(A.readSettings({ met: 'yes', bogus: true }),
-    { aic: false, met: true, cma: false });
+    { picsum: false, aic: false, met: true, cma: false });
+});
+
+test('readSettings preserves an existing AIC-only preference', () => {
+  assert.deepStrictEqual(A.readSettings({ aic: true, met: false, cma: false }),
+    { picsum: false, aic: true, met: false, cma: false });
 });
 
 test('toggleSource enables and disables', () => {
   const s = A.toggleSource(A.DEFAULT_SETTINGS, 'met', true);
-  assert.deepStrictEqual(s, { aic: true, met: true, cma: false });
-  const s2 = A.toggleSource(s, 'aic', false);
-  assert.deepStrictEqual(s2, { aic: false, met: true, cma: false });
+  assert.deepStrictEqual(s, { picsum: true, aic: false, met: true, cma: false });
+  const s2 = A.toggleSource(s, 'picsum', false);
+  assert.deepStrictEqual(s2, { picsum: false, aic: false, met: true, cma: false });
 });
 
 test('toggleSource refuses to disable the last enabled source', () => {
-  const onlyAic = { aic: true, met: false, cma: false };
+  const onlyAic = { picsum: false, aic: true, met: false, cma: false };
   assert.deepStrictEqual(A.toggleSource(onlyAic, 'aic', false), onlyAic);
 });
 
 test('enabledIds returns ids of enabled sources', () => {
-  assert.deepStrictEqual(A.enabledIds({ aic: true, met: false, cma: true }), ['aic', 'cma']);
+  assert.deepStrictEqual(A.enabledIds({ picsum: true, aic: true, met: false, cma: true }), ['picsum', 'aic', 'cma']);
 });
 
 test('toggleSource ignores unknown source ids', () => {
-  assert.deepStrictEqual(A.toggleSource({ aic: true, met: false, cma: false }, 'xyz', true),
-    { aic: true, met: false, cma: false });
+  assert.deepStrictEqual(A.toggleSource({ picsum: false, aic: true, met: false, cma: false }, 'xyz', true),
+    { picsum: false, aic: true, met: false, cma: false });
 });
 
 test('enabledIds handles null input', () => {
@@ -45,6 +53,53 @@ test('SOURCES exposes the aic adapter metadata', () => {
   assert.strictEqual(aic.viewLabel, 'View at the Art Institute');
   assert.strictEqual(aic.bundle, 'artworks.aic.json');
   assert.strictEqual(aic.liveRefresh, true);
+});
+
+test('picsum adapter normalizes a landscape photo with attribution', () => {
+  const raw = {
+    id: '42', author: 'Jane Photographer', width: 4200, height: 2800,
+    url: 'https://unsplash.com/photos/example',
+    download_url: 'https://picsum.photos/id/42/4200/2800'
+  };
+  const r = A.sourceById('picsum').normalize(raw);
+  assert.strictEqual(r.id, '42');
+  assert.strictEqual(r.source, 'picsum');
+  assert.strictEqual(r.artistDisplay, 'Photo by Jane Photographer');
+  assert.strictEqual(r.image, 'https://picsum.photos/id/42/1920/1080');
+  assert.strictEqual(r.pageUrl, 'https://unsplash.com/photos/example');
+  assert.strictEqual(r.viewLabel, 'View original photo');
+  assert.strictEqual(r.providerLabel, 'Photos via Lorem Picsum');
+});
+
+test('picsum adapter filters portrait photos and malformed records', () => {
+  const picsum = A.sourceById('picsum');
+  assert.strictEqual(picsum.normalize({ id: '1', author: 'A', width: 1000, height: 1600 }), null);
+  assert.strictEqual(picsum.normalize({ id: '1', width: 1600, height: 1000 }), null);
+});
+
+test('picsum adapter is bundle-only with an anonymous build endpoint', () => {
+  const picsum = A.sourceById('picsum');
+  assert.strictEqual(picsum.bundle, 'photos.picsum.json');
+  assert.strictEqual(picsum.liveRefresh, false);
+  assert.ok(picsum.searchUrl(3).includes('page=3'));
+});
+
+test('bundled photography pool is populated and attribution-complete', () => {
+  const photos = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'photos.picsum.json'), 'utf8'));
+  assert.ok(photos.length >= 500);
+  assert.ok(photos.every(photo => photo.source === 'picsum'));
+  assert.ok(photos.every(photo => photo.image.startsWith('https://picsum.photos/id/')));
+  assert.ok(photos.every(photo => photo.artist && photo.pageUrl && photo.providerUrl));
+});
+
+test('pool builder rejects missing and unknown source arguments', () => {
+  const script = path.join(__dirname, '..', 'scripts', 'build-pool.js');
+  const missing = spawnSync(process.execPath, [script, '--source'], { encoding: 'utf8' });
+  assert.notStrictEqual(missing.status, 0);
+  assert.match(missing.stderr, /Missing value for --source/);
+  const unknown = spawnSync(process.execPath, [script, '--source', 'unknown'], { encoding: 'utf8' });
+  assert.notStrictEqual(unknown.status, 0);
+  assert.match(unknown.stderr, /Unknown source: unknown/);
 });
 
 test('aic adapter normalizes a raw record and tags the source', () => {
@@ -126,8 +181,8 @@ test('cma adapter supports live refresh and skip-based pagination', () => {
   assert.ok(cma.searchUrl(2).includes('skip=100'));
 });
 
-test('SOURCES contains all three adapters in order', () => {
-  assert.deepStrictEqual(A.SOURCES.map(s => s.id), ['aic', 'met', 'cma']);
+test('SOURCES contains photography and all three museums in order', () => {
+  assert.deepStrictEqual(A.SOURCES.map(s => s.id), ['picsum', 'aic', 'met', 'cma']);
 });
 
 test('cma adapter keeps parentheticals inside the artist name', () => {
@@ -152,4 +207,15 @@ test('mergePools dedupes on source:id and keeps cross-source numeric collisions'
 test('mergePools tolerates empty/missing pools', () => {
   assert.deepStrictEqual(A.mergePools([]), []);
   assert.deepStrictEqual(A.mergePools([null, [], undefined]), []);
+});
+
+test('new tab uses a neutral title, removes the wordmark, and keeps extension icons', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'newtab.html'), 'utf8');
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifest.json'), 'utf8'));
+  assert.match(html, /<title>New Tab<\/title>/);
+  assert.match(html, /<link rel="icon"[^>]+href="icons\/icon16\.png"/);
+  assert.doesNotMatch(html, /vt-wordmark/);
+  assert.strictEqual(manifest.icons['16'], 'icons/icon16.png');
+  assert.strictEqual(manifest.icons['48'], 'icons/icon48.png');
+  assert.strictEqual(manifest.icons['128'], 'icons/icon128.png');
 });
