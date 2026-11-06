@@ -2,36 +2,60 @@ const test = require('node:test');
 const assert = require('node:assert');
 const A = require('../art-normalize.js');
 
+// Full settings object with only the listed ids enabled.
+const S = (...on) => ({
+  aic: on.includes('aic'), met: on.includes('met'),
+  metmodern: on.includes('metmodern'), cma: on.includes('cma'), nga: on.includes('nga')
+});
+
 test('DEFAULT_SETTINGS is AIC-only', () => {
-  assert.deepStrictEqual(A.DEFAULT_SETTINGS, { aic: true, met: false, cma: false });
+  assert.deepStrictEqual(A.DEFAULT_SETTINGS, S('aic'));
 });
 
 test('readSettings sanitizes garbage to AIC-only default', () => {
-  assert.deepStrictEqual(A.readSettings(null), { aic: true, met: false, cma: false });
-  assert.deepStrictEqual(A.readSettings('nonsense'), { aic: true, met: false, cma: false });
-  assert.deepStrictEqual(A.readSettings({ met: 'yes', bogus: true }),
-    { aic: false, met: true, cma: false });
+  assert.deepStrictEqual(A.readSettings(null), S('aic'));
+  assert.deepStrictEqual(A.readSettings('nonsense'), S('aic'));
+  assert.deepStrictEqual(A.readSettings({ met: 'yes', bogus: true }), S('met'));
 });
 
 test('toggleSource enables and disables', () => {
   const s = A.toggleSource(A.DEFAULT_SETTINGS, 'met', true);
-  assert.deepStrictEqual(s, { aic: true, met: true, cma: false });
+  assert.deepStrictEqual(s, S('aic', 'met'));
   const s2 = A.toggleSource(s, 'aic', false);
-  assert.deepStrictEqual(s2, { aic: false, met: true, cma: false });
+  assert.deepStrictEqual(s2, S('met'));
 });
 
 test('toggleSource refuses to disable the last enabled source', () => {
-  const onlyAic = { aic: true, met: false, cma: false };
+  const onlyAic = S('aic');
   assert.deepStrictEqual(A.toggleSource(onlyAic, 'aic', false), onlyAic);
 });
 
 test('enabledIds returns ids of enabled sources', () => {
-  assert.deepStrictEqual(A.enabledIds({ aic: true, met: false, cma: true }), ['aic', 'cma']);
+  assert.deepStrictEqual(A.enabledIds(S('aic', 'cma')), ['aic', 'cma']);
 });
 
 test('toggleSource ignores unknown source ids', () => {
-  assert.deepStrictEqual(A.toggleSource({ aic: true, met: false, cma: false }, 'xyz', true),
-    { aic: true, met: false, cma: false });
+  assert.deepStrictEqual(A.toggleSource(S('aic'), 'xyz', true), S('aic'));
+});
+
+test('metmodern adapter is a separate bundle-only source using dept 21', () => {
+  const mm = A.sourceById('metmodern');
+  assert.strictEqual(mm.bundle, 'artworks.metmodern.json');
+  assert.strictEqual(mm.liveRefresh, false);
+  assert.ok(mm.searchUrl().includes('departmentId=21'));
+  assert.ok(mm.searchUrl().includes('/v1.1/search'));
+});
+
+test('metmodern records dedupe against the general met pool', () => {
+  const rec = { objectID: 5, isPublicDomain: true, primaryImage: 'x' };
+  const a = A.sourceById('met').normalize(rec);
+  const b = A.sourceById('metmodern').normalize(rec);
+  assert.strictEqual(A.mergePools([[a], [b]]).length, 1);
+});
+
+test('metmodern toggles independently of met', () => {
+  const s = A.toggleSource(A.DEFAULT_SETTINGS, 'metmodern', true);
+  assert.deepStrictEqual(A.enabledIds(s), ['aic', 'metmodern']);
 });
 
 test('enabledIds handles null input', () => {
@@ -127,7 +151,7 @@ test('cma adapter supports live refresh and skip-based pagination', () => {
 });
 
 test('SOURCES contains all three adapters in order', () => {
-  assert.deepStrictEqual(A.SOURCES.map(s => s.id), ['aic', 'met', 'cma']);
+  assert.deepStrictEqual(A.SOURCES.map(s => s.id), ['aic', 'met', 'metmodern', 'cma', 'nga']);
 });
 
 test('cma adapter keeps parentheticals inside the artist name', () => {
@@ -152,4 +176,25 @@ test('mergePools dedupes on source:id and keeps cross-source numeric collisions'
 test('mergePools tolerates empty/missing pools', () => {
   assert.deepStrictEqual(A.mergePools([]), []);
   assert.deepStrictEqual(A.mergePools([null, [], undefined]), []);
+});
+
+test('nga adapter normalizes a joined open-access record', () => {
+  const r = A.sourceById('nga').normalize({
+    objectid: '123', title: 'Water Lilies', attribution: 'Claude Monet',
+    displaydate: '1906', medium: 'oil on canvas', iiifurl: 'https://api.nga.gov/iiif/abc'
+  });
+  assert.strictEqual(r.source, 'nga');
+  assert.strictEqual(r.artist, 'Claude Monet');
+  assert.strictEqual(r.image, 'https://api.nga.gov/iiif/abc/full/!1200,1200/0/default.jpg');
+  assert.strictEqual(r.pageUrl, 'https://www.nga.gov/artworks/123');
+});
+
+test('nga adapter returns null without an image', () => {
+  assert.strictEqual(A.sourceById('nga').normalize({ objectid: '1', title: 'x' }), null);
+});
+
+test('parseCSV handles quotes, escaped quotes and embedded newlines', () => {
+  const { parseCSV } = require('../scripts/csv.js');
+  const rows = parseCSV('a,b\n1,"x, ""y""\nz"\n2,w\n');
+  assert.deepStrictEqual(rows, [{ a: '1', b: 'x, "y"\nz' }, { a: '2', b: 'w' }]);
 });

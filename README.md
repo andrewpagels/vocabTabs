@@ -2,7 +2,7 @@
 
 A Chrome extension that replaces your new tab page with a vocabulary word set against a full-bleed public-domain artwork. Learn a new word every time you open a tab.
 
-Artwork can be drawn from any combination of three open public-domain collections — the [Art Institute of Chicago](https://www.artic.edu/), [The Metropolitan Museum of Art](https://www.metmuseum.org/), and the [Cleveland Museum of Art](https://www.clevelandart.org/) — chosen with checkboxes in the **Manage** panel (Art Institute only by default).
+Artwork can be drawn from any combination of open public-domain collections — the [Art Institute of Chicago](https://www.artic.edu/), [The Metropolitan Museum of Art](https://www.metmuseum.org/), the Met's Modern & Contemporary paintings (its own checkbox), the [National Gallery of Art](https://www.nga.gov/)'s modern paintings (1870 onward), and the [Cleveland Museum of Art](https://www.clevelandart.org/) — chosen with checkboxes in the **Manage** panel (Art Institute only by default).
 
 ## Install
 
@@ -40,7 +40,7 @@ npm run compile    # rebuild .js from .jsx after editing any .jsx file
 
 ### Refreshing the artwork pool
 
-The extension ships with one bundled pool per source — `artworks.aic.json`, `artworks.met.json`, `artworks.cma.json` — so it loads instantly and works offline regardless of which sources you enable. To regenerate all three from the live APIs:
+The extension ships with one bundled pool per source — `artworks.aic.json`, `artworks.met.json`, `artworks.metmodern.json`, `artworks.cma.json`, `artworks.nga.json` — so it loads instantly and works offline regardless of which sources you enable. To regenerate them from the live APIs (optionally pass a source id, e.g. `node scripts/build-pool.js metmodern`):
 
 ```bash
 npm run build-pool   # fetches fresh artworks → artworks.<source>.json
@@ -51,7 +51,7 @@ Then commit the updated `artworks.*.json` files.
 ## How it works
 
 - `manifest.json` — Manifest V3 config; overrides the new tab page and strips request headers that the AIC API rejects.
-- `artworks.aic.json` / `artworks.met.json` / `artworks.cma.json` — bundled per-source artwork pools (the offline/instant source of truth).
+- `artworks.aic.json` / `artworks.met.json` / `artworks.metmodern.json` / `artworks.cma.json` / `artworks.nga.json` — bundled per-source artwork pools (the offline/instant source of truth).
 - `art-normalize.js` — the source registry: one adapter per museum (record shaping + which sources are enabled).
 - `art.js` — artwork service; merges the enabled sources, loading from cache → bundled pool → background API refresh.
 - `vocab.js` — word storage, weighting, and CSV import.

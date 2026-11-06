@@ -78,7 +78,7 @@
     viewLabel: 'View at The Met',
     bundle: 'artworks.met.json',
     liveRefresh: false,
-    searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1/search?q=painting&hasImages=true&isPublicDomain=true',
+    searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1.1/search?q=painting&hasImages=true&isPublicDomain=true',
     objectUrl: (id) => `https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`,
     normalize: metNormalize
   };
@@ -124,14 +124,61 @@
     normalize: cmaNormalize
   };
 
-  const SOURCES = [AIC, MET, CMA];
+  // Met department 21 = Modern and Contemporary Art. Records keep source 'met'
+  // so they dedupe against the general Met pool if both boxes are ticked.
+  const METMODERN = {
+    id: 'metmodern',
+    label: 'The Met — Modern & Contemporary',
+    viewLabel: 'View at The Met',
+    bundle: 'artworks.metmodern.json',
+    liveRefresh: false,
+    searchUrl: () => 'https://collectionapi.metmuseum.org/public/collection/v1.1/search?departmentId=21&hasImages=true&isPublicDomain=true&medium=Paintings&q=*',
+    objectUrl: MET.objectUrl,
+    normalize: metNormalize
+  };
+
+  // National Gallery of Art open-access data. normalize() takes a record the
+  // build script has already joined from objects.csv + published_images.csv.
+  function ngaNormalize(d) {
+    if (!d || !d.iiifurl) return null;
+    const artist = d.attribution || 'Unknown artist';
+    return {
+      id: d.objectid,
+      title: d.title || 'Untitled',
+      artist,
+      artistDisplay: artist,
+      date: d.displaydate || '',
+      medium: d.medium || '',
+      origin: '',
+      imageId: null,
+      color: null,
+      image: `${d.iiifurl}/full/!1200,1200/0/default.jpg`,
+      thumb: `${d.iiifurl}/full/!200,200/0/default.jpg`,
+      pageUrl: `https://www.nga.gov/artworks/${d.objectid}`,
+      wikiUrl: `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(d.attribution || '')}`,
+      source: 'nga',
+      viewLabel: 'View at the National Gallery of Art'
+    };
+  }
+
+  const NGA = {
+    id: 'nga',
+    label: 'National Gallery of Art — Modern',
+    viewLabel: 'View at the National Gallery of Art',
+    bundle: 'artworks.nga.json',
+    liveRefresh: false,
+    normalize: ngaNormalize
+  };
+
+  const SOURCES = [AIC, MET, METMODERN, CMA, NGA];
   function sourceById(id) { return SOURCES.find(s => s.id === id) || null; }
 
-  const SOURCE_IDS = ['aic', 'met', 'cma'];
-  const DEFAULT_SETTINGS = Object.freeze({ aic: true, met: false, cma: false });
+  const SOURCE_IDS = SOURCES.map(s => s.id);
+  const DEFAULT_SETTINGS = Object.freeze(
+    Object.fromEntries(SOURCE_IDS.map(id => [id, id === 'aic'])));
 
   function readSettings(raw) {
-    const out = { aic: false, met: false, cma: false };
+    const out = Object.fromEntries(SOURCE_IDS.map(id => [id, false]));
     const obj = (raw && typeof raw === 'object') ? raw : null;
     if (!obj) return { ...DEFAULT_SETTINGS };
     let any = false;
